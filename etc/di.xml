@@ -3,7 +3,6 @@
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="create_log_file" xsi:type="object">Zeloc\XdebugToggle\Console\Command\CreateFileCommand</item>
                 <item name="xdebug_toggle" xsi:type="object">Zeloc\XdebugToggle\Console\Command\ToggleXdebugCommand</item>
             </argument>
         </arguments>
