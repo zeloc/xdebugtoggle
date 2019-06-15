@@ -18,7 +18,7 @@ class ToggleXdebugCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $xdebugIni = file_get_contents('/etc/php/7.1/mods-available/xdebug.ini');
+        $xdebugIni = file_get_contents('/etc/php/7.0/mods-available/xdebug.ini');
         preg_match('/^;z/', $xdebugIni, $matches);
         $result = $matches[0] ?? false;
 
@@ -29,7 +29,7 @@ class ToggleXdebugCommand extends Command
             $out = preg_replace('/^z/', ';z', $xdebugIni);
             $output->writeln('Setting Xdebug OFF');
         }
-        file_put_contents('/etc/php/7.1/mods-available/xdebug.ini', $out);
-        shell_exec('sudo service php7.1-fpm restart');
+        file_put_contents('/etc/php/7.0/mods-available/xdebug.ini', $out);
+        shell_exec('sudo service php7.0-fpm restart');
     }
 }
