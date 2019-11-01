@@ -1,5 +1,5 @@
 
-This version is for php 7.1
+This version is for php 7.2
 ```
 composer require zeloc/xdebugtoggle
 ```
