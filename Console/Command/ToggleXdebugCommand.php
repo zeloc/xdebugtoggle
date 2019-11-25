@@ -39,7 +39,9 @@ class ToggleXdebugCommand extends Command
         $output->writeln('Updating xdebug.ini file....');
         file_put_contents($xdebugIniFile, $out);
         $output->writeln('Restarting php fpm service....');
-        shell_exec('sudo service php7.2-fpm restart');
+        shell_exec('su root');
+        shell_exec('service php7.2-fpm restart');
+        shell_exec('su -s /bin/bash www-data');
 
         $output->writeln($resultOutput);
         $output->writeln('');
