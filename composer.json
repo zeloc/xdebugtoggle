@@ -2,7 +2,7 @@
     "name": "zeloc/xdebugtoggle",
     "description": "PHP 7.2 version. This is a console command to toggle xdebug on and off",
     "require": {
-        "php": "~7.2.0"
+        "php": ">=7.2.0 <7.5.0"
     },
     "type": "magento2-module",
     "license": [
