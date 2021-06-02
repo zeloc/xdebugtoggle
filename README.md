@@ -1,5 +1,5 @@
 
-This version is for php 7.2
+The php version can now be specified in the config.xml file currently defaulting to 7.2
 ```
 composer require zeloc/xdebugtoggle
 ```
