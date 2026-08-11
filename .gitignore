@@ -1,0 +1,34 @@
+# Dependencies
+/vendor/
+
+# Composer lock file for module/library repositories
+/composer.lock
+
+# IDE settings
+/.idea/
+/.vscode/
+
+# Environment files
+/.env
+/.env.*
+
+# PHP tool caches
+/.php_cs.cache
+/.phpunit.result.cache
+
+# Frontend dependencies
+/node_modules/
+
+# Editor temp files
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Security/DLP marker files
+*.sec.*
+*:sec.*
+
+
