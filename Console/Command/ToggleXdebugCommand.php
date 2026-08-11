@@ -60,7 +60,7 @@ class ToggleXdebugCommand extends Command
      * @param OutputInterface $output
      * @return int
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $mode = $input->getOption(self::ENTITY_TYPE);
         if (!is_string($mode) || !in_array($mode, ['d', 'c'], true)) {
