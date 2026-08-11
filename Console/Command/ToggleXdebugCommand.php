@@ -2,36 +2,34 @@
 
 namespace Zeloc\XdebugToggle\Console\Command;
 
-use Epicor\CacheWarmer\Model\Config\Source\PageType as PageType;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface as ScopeConfig;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 use Zeloc\XdebugToggle\Model\Config\XdebugConfig;
 
 class ToggleXdebugCommand extends Command
 {
-    const ENTITY_TYPE = 'mode';
+    private const ENTITY_TYPE = 'mode';
 
-    private $commandName = 'zeloc:xdebug:toggle';
+    private string $commandName = 'zeloc:xdebug:toggle';
 
-    private $commandDescription = 'Toggles xdebug on or off use --mode=d (debug mode) or --mode=c (unit coverage)';
+    private string $commandDescription = 'Toggles xdebug on or off use --mode=d (debug mode) or --mode=c (unit coverage)';
 
-    private $phpVersion;
+    private string $phpVersion = '';
 
-    private $xdebugFilePath;
+    private string $xdebugFilePath = '';
 
-    private $output;
+    private ?OutputInterface $output = null;
     /**
      * @var ScopeConfig
      */
-    private $scopeConfig;
+    private ScopeConfig $scopeConfig;
 
     public function __construct(
         ScopeConfig $scopeConfig,
-                    $name = null
+        ?string $name = null
     ) {
         parent::__construct($name);
         $this->scopeConfig = $scopeConfig;
@@ -44,7 +42,7 @@ class ToggleXdebugCommand extends Command
     {
         $options = [
             new InputOption(
-                'mode',
+                self::ENTITY_TYPE,
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Mode'
@@ -64,19 +62,27 @@ class ToggleXdebugCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $mode = $input->getOption('mode');
-        if (!in_array($mode, ['d', 'c'])) {
+        $mode = $input->getOption(self::ENTITY_TYPE);
+        if (!is_string($mode) || !in_array($mode, ['d', 'c'], true)) {
             $output->writeln('<fg=red>Use: --mode=d or --mode=c</>');
-        } else {
-            $this->phpVersion = $this->getPhpVersion();
-            $this->xdebugFilePath = $this->getXdebugIniPath();
-            $this->output = $output;
-            if ($mode === 'd') {
-                $this->toggleDebug();
-            }
-            if ($mode === 'c') {
-                $this->toggleCoverage();
-            }
+
+            return 1;
+        }
+
+        $this->phpVersion = $this->getPhpVersion();
+        if ($this->phpVersion === '') {
+            $output->writeln('<fg=red>Missing configured PHP version at zeloc_xdebugtoggle/php/version</>');
+
+            return 1;
+        }
+
+        $this->xdebugFilePath = $this->getXdebugIniPath();
+        $this->output = $output;
+        if ($mode === 'd') {
+            $this->toggleDebug();
+        }
+        if ($mode === 'c') {
+            $this->toggleCoverage();
         }
 
         return 0;
@@ -85,11 +91,13 @@ class ToggleXdebugCommand extends Command
     /**
      * @return void
      */
-    private function toggleCoverage()
+    private function toggleCoverage(): void
     {
         if (!is_writable($this->xdebugFilePath)) {
             $this->output
                 ->writeln('<fg=red>Can\'t update xdebug.ini >>> Update permissions to make xdebug.ini writeable</>');
+
+            return;
         }
 
         $this->infoHeading();
@@ -105,18 +113,24 @@ class ToggleXdebugCommand extends Command
         $this->infoUpdating();
         $this->infoOutputStatus($resultOutput);
         $this->infoMode('coverage');
-        $this->writeConfig($updateConfig);
+        if (!$this->writeConfig($updateConfig)) {
+            $this->output->writeln('<fg=red>Failed to write the updated xdebug.ini configuration</>');
+
+            return;
+        }
         $this->infoShowChangeInfo($updateConfig);
 
         $this->restartFpmService();
         $this->infoWriteFooter();
     }
 
-    private function toggleDebug()
+    private function toggleDebug(): void
     {
         if (!is_writable($this->xdebugFilePath)) {
             $this->output
                 ->writeln('<fg=red>Can\'t update xdebug.ini >>> Update permissions to make xdebug.ini writeable</>');
+
+            return;
         }
 
         $this->infoHeading();
@@ -132,14 +146,18 @@ class ToggleXdebugCommand extends Command
         $this->infoUpdating();
         $this->infoOutputStatus($resultOutput);
         $this->infoMode('debug');
-        $this->writeConfig($updateConfig);
+        if (!$this->writeConfig($updateConfig)) {
+            $this->output->writeln('<fg=red>Failed to write the updated xdebug.ini configuration</>');
+
+            return;
+        }
         $this->infoShowChangeInfo($updateConfig);
 
         $this->restartFpmService();
         $this->infoWriteFooter();
     }
 
-    private function infoOutputStatus($status)
+    private function infoOutputStatus(string $status): void
     {
         if ($status === 'enabled') {
             $state = 'ON';
@@ -149,17 +167,17 @@ class ToggleXdebugCommand extends Command
         $this->output->writeln('<info>Xdebug Status Now: </info><fg=blue>' . $state . '</>');
     }
 
-    private function restartFpmService()
+    private function restartFpmService(): void
     {
         shell_exec("sudo service php$this->phpVersion-fpm restart");
     }
 
-    private function infoMode($mode)
+    private function infoMode(string $mode): void
     {
         $this->output->writeln('<info>Xdebug Status Mode: </info><fg=blue>' . $mode . '</>');
     }
 
-    private function infoHeading()
+    private function infoHeading(): void
     {
         $this->output->writeln('');
         $this->output->writeln('<question>########    Toggle Xdebug on/off    #########</question>');
@@ -168,7 +186,7 @@ class ToggleXdebugCommand extends Command
         $this->output->writeln('');
     }
 
-    private function infoShowChangeInfo($updateConfig)
+    private function infoShowChangeInfo(string $updateConfig): void
     {
         $this->output->writeln('');
         $this->output->writeln('<fg=gray>Current config now:</>');
@@ -176,28 +194,29 @@ class ToggleXdebugCommand extends Command
         $this->output->writeln('Restarting php fpm service....');
     }
 
-    private function infoUpdating()
+    private function infoUpdating(): void
     {
         $this->output->writeln('Updating xdebug.ini file....');
     }
 
-    public function getXdebugIniPath()
+    public function getXdebugIniPath(): string
     {
         $phpVersion = $this->getPhpVersion();
+
         return "/etc/php/$phpVersion/mods-available/xdebug.ini";
     }
 
-    public function getPhpVersion()
+    public function getPhpVersion(): string
     {
-        return $this->scopeConfig->getValue('zeloc_xdebugtoggle/php/version');
+        return trim((string)$this->scopeConfig->getValue('zeloc_xdebugtoggle/php/version'));
     }
 
-    public function writeConfig($configText)
+    public function writeConfig(string $configText): bool
     {
-        file_put_contents($this->xdebugFilePath, $configText);
+        return file_put_contents($this->xdebugFilePath, $configText) !== false;
     }
 
-    private function infoWriteFooter()
+    private function infoWriteFooter(): void
     {
         $this->output->writeln('');
         $this->output->writeln('<question>#############################################</question>');

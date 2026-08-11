@@ -1,25 +1,75 @@
-Version 6.0.2
+# Zeloc Xdebug Toggle (Magento 2)
 
-### **Now supports use changing the mode to coverage when using unit testing**
+Magento 2 module that adds a CLI command to toggle Xdebug between debug and coverage modes by updating the Xdebug INI file and restarting PHP-FPM.
 
-The php version can now be specified in the config.xml file currently defaulting to 8.1
-```
+## Requirements
+
+- PHP `~8.4.0` (from `composer.json`)
+- Magento 2 module environment
+- Permission to write to `/etc/php/<version>/mods-available/xdebug.ini`
+- Permission to run `sudo service php<version>-fpm restart`
+
+## Install
+
+```bash
 composer require zeloc/xdebugtoggle
 ```
-The above represents the name that is defined in the modules composer.json
 
-Runs with n98 mage run or bin/magento
-```
-zeloc:xdebug:toggle  or short z:x:t
-Modes now used:
+Then enable and upgrade in Magento as usual:
 
-Debug mode:
-zeloc:xdebug:toggle --mode=d
-
-Coverage mode
-zeloc:xdebug:toggle --mode=c
-
-
+```bash
+bin/magento module:enable Zeloc_XdebugToggle
+bin/magento setup:upgrade
+bin/magento cache:flush
 ```
 
+## Command
+
+```bash
+bin/magento zeloc:xdebug:toggle --mode=d
+bin/magento zeloc:xdebug:toggle --mode=c
 ```
+
+- `--mode=d` toggles Debug mode (`xdebug.mode=debug`)
+- `--mode=c` toggles Coverage mode (`xdebug.mode=coverage`)
+
+If `--mode` is missing or invalid, the command returns a non-zero exit code.
+
+## PHP Version Source
+
+The command reads the PHP version from Magento config path:
+
+`zeloc_xdebugtoggle/php/version`
+
+Default in `etc/config.xml`:
+
+`8.3`
+
+The computed target INI path is:
+
+`/etc/php/<version>/mods-available/xdebug.ini`
+
+## Generated Xdebug Settings
+
+When enabled in debug mode, the module writes:
+
+- `zend_extension=xdebug.so`
+- `xdebug.mode=debug`
+- `xdebug.client_port=9003`
+- `xdebug.ide_key=PHPSTORM`
+- `xdebug.discover_client_host=0`
+- `xdebug.client_host=localhost`
+- `xdebug.log=/var/log/xdebug.log`
+
+When enabled in coverage mode, the module writes:
+
+- `zend_extension=xdebug.so`
+- `xdebug.mode=coverage`
+
+When disabled, `zend_extension` is omitted.
+
+## Notes
+
+- This module edits a system PHP config file; run the command with appropriate permissions.
+- Restarting PHP-FPM is required for changes to take effect.
+- For containerized environments, you may need to adjust `xdebug.client_host` and discovery behavior.

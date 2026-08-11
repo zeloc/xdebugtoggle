@@ -6,16 +6,16 @@ namespace Zeloc\XdebugToggle\Model\Config;
 
 class XdebugConfig
 {
-    public static function getDebugModeConfigList($isActive = true)
+    public static function getDebugModeConfigList(bool $isActive = true): array
     {
         $active = ['zend_extension' => 'xdebug.so'];
         $config =  [
             'xdebug.mode' => 'debug',
-            'xdebug.client_port' => 9000,
+            'xdebug.client_port' => 9003,
             'xdebug.ide_key' => 'PHPSTORM',
             'xdebug.discover_client_host' => 0,
             'xdebug.client_host' => 'localhost',
-            'xdebug.xdebug.log' => '/var/log/xdebug.log'
+            'xdebug.log' => '/var/log/xdebug.log'
         ];
         if ($isActive === true) {
             $config = array_merge($active, $config);
@@ -24,7 +24,7 @@ class XdebugConfig
         return $config;
     }
 
-    public static function getCoverageModeConfigList($isActive = true)
+    public static function getCoverageModeConfigList(bool $isActive = true): array
     {
         $active = ['zend_extension' => 'xdebug.so'];
         $config =  [
@@ -37,7 +37,7 @@ class XdebugConfig
         return $config;
     }
 
-    public static function getConfigText()
+    public static function getConfigText(): string
     {
         $config = self::getDebugModeConfigList();
         $out = '';
@@ -51,19 +51,30 @@ class XdebugConfig
         return $out;
     }
 
-    public static function getXdebugConfigArray($path)
+    public static function getXdebugConfigArray(string $path): array
     {
-        return file($path);
+        $config = file($path, FILE_IGNORE_NEW_LINES);
+
+        return $config === false ? [] : $config;
     }
 
-    public static function getCurrentConfigArray($path)
+    public static function getCurrentConfigArray(string $path): array
     {
         $xdebugIni = self::getXdebugConfigArray($path);
         $configArray = [];
         foreach ($xdebugIni as $line) {
-            $lineData = explode('=', $line);
-            $param = trim($lineData[0]) ?? false;
-            $value = trim($lineData[1]) ?? false;
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, ';') || str_starts_with($line, '#')) {
+                continue;
+            }
+
+            $lineData = explode('=', $line, 2);
+            if (count($lineData) !== 2) {
+                continue;
+            }
+
+            $param = trim($lineData[0]);
+            $value = trim($lineData[1]);
             if ($param && $value) {
                 $configArray[$param] = $value;
             }
@@ -73,38 +84,24 @@ class XdebugConfig
     }
 
 
-    public static function getCurrentState($path)
+    public static function getCurrentState(string $path): string
     {
         $result = self::getCurrentConfigArray($path);
 
         return array_key_exists('zend_extension', $result) ? 'enabled' : 'disabled';
     }
 
-    public static function getXdebugConfigString($status)
+    public static function getXdebugConfigString(string $status): string
     {
-        if ($status === 'enabled') {
-            $configArray = self::getDebugModeConfigList();
-            return self::getConfigString($configArray);
-        }
-        if ($status === 'disabled') {
-            $configArray = self::getDebugModeConfigList(false);
-            return self::getConfigString($configArray);
-        }
+        return self::getConfigString(self::getDebugModeConfigList($status === 'enabled'));
     }
 
-    public static function getXdebugCoverageConfigString($status)
+    public static function getXdebugCoverageConfigString(string $status): string
     {
-        if ($status === 'enabled') {
-            $configArray = self::getCoverageModeConfigList();
-            return self::getConfigString($configArray);
-        }
-        if ($status === 'disabled') {
-            $configArray = self::getCoverageModeConfigList(false);
-            return self::getConfigString($configArray);
-        }
+        return self::getConfigString(self::getCoverageModeConfigList($status === 'enabled'));
     }
 
-    public static function getConfigString($arrayConfig)
+    public static function getConfigString(array $arrayConfig): string
     {
         $configString = '';
         foreach ($arrayConfig as $index => $value) {
